@@ -40,7 +40,10 @@ class TTSRequest(BaseModel):
     )
     engine_type: Optional[str] = Field(
         default=None,
-        description="TTS engine type (sambert, cosyvoice, melotts). Auto-detect if not specified.",
+        description=(
+            "TTS engine type (sambert, cosyvoice, melotts). "
+            "Auto-detect if not specified."
+        ),
     )
 
 
@@ -85,8 +88,10 @@ async def synthesize(request: TTSRequest) -> TTSResponse:
     if model_info is None:
         raise HTTPException(
             status_code=404,
-            detail=f"TTS model '{request.model_id}' not found. "
-            "Please download the model first.",
+            detail=(
+                f"TTS model '{request.model_id}' not found. "
+                "Please download the model first."
+            ),
         )
 
     # Validate model is a TTS model
