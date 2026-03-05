@@ -14,17 +14,20 @@ import {
   DownloadOutlined,
   LoadingOutlined,
   ApiOutlined,
+  SoundOutlined,
+  PauseCircleOutlined,
 } from "@ant-design/icons";
 import type {
   ProviderInfo,
   LocalModelResponse,
   DownloadTaskResponse,
 } from "../../../../../api/types";
-import api from "../../../../../api";
+import api, { getApiUrl } from "../../../../../api";
 import { useTranslation } from "react-i18next";
 import styles from "../../index.module.less";
 
 const POLL_INTERVAL_MS = 3000;
+const TTS_TEST_TEXT = "你好，这是语音合成测试。Hello, this is a text to speech test.";
 
 interface LocalModelManageModalProps {
   provider: ProviderInfo;
@@ -220,7 +223,44 @@ export function LocalModelManageModal({
     });
   };
 
+  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   const handleTest = async (modelId: string) => {
+    // For TTS provider, test by synthesizing and playing sample audio
+    if (provider.id === "tts") {
+      setTestingModelId(modelId);
+      try {
+        const result = await api.synthesizeTTS({
+          text: TTS_TEST_TEXT,
+          model_id: modelId,
+          speed: 1.0,
+          pitch: 1.0,
+        });
+
+        // Play the generated audio
+        const audioUrl = getApiUrl(result.audio_url);
+        if (audioRef.current) {
+          audioRef.current.pause();
+        }
+        audioRef.current = new Audio(audioUrl);
+        audioRef.current.onended = () => setPlayingAudio(null);
+        audioRef.current.onplay = () => setPlayingAudio(modelId);
+        audioRef.current.onpause = () => setPlayingAudio(null);
+        await audioRef.current.play();
+
+        message.success(t("models.ttsTestSuccess"));
+      } catch (error) {
+        const errMsg =
+          error instanceof Error ? error.message : t("models.ttsTestFailed");
+        message.error(errMsg);
+      } finally {
+        setTestingModelId(null);
+      }
+      return;
+    }
+
+    // For other providers (llamacpp, mlx), use standard connection test
     setTestingModelId(modelId);
     try {
       const result = await api.testModelConnection(provider.id, {
@@ -243,6 +283,24 @@ export function LocalModelManageModal({
       setTestingModelId(null);
     }
   };
+
+  const handleStopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setPlayingAudio(null);
+  };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
 
   const handleClose = () => {
     setAdding(false);
@@ -327,12 +385,30 @@ export function LocalModelManageModal({
                 <Button
                   type="text"
                   size="small"
-                  icon={<ApiOutlined />}
-                  onClick={() => handleTest(m.id)}
+                  icon={
+                    provider.id === "tts" ? (
+                      playingAudio === m.id ? (
+                        <PauseCircleOutlined />
+                      ) : (
+                        <SoundOutlined />
+                      )
+                    ) : (
+                      <ApiOutlined />
+                    )
+                  }
+                  onClick={() =>
+                    provider.id === "tts" && playingAudio === m.id
+                      ? handleStopAudio()
+                      : handleTest(m.id)
+                  }
                   loading={testingModelId === m.id}
                   style={{ marginRight: 4 }}
                 >
-                  {t("models.testConnection")}
+                  {provider.id === "tts"
+                    ? playingAudio === m.id
+                      ? t("models.stopAudio")
+                      : t("models.playSample")
+                    : t("models.testConnection")}
                 </Button>
                 <Button
                   type="text"
@@ -372,7 +448,7 @@ export function LocalModelManageModal({
             <Form.Item
               name="source"
               label={t("models.localSource")}
-              initialValue="huggingface"
+              initialValue={provider.id === "tts" ? "modelscope" : "huggingface"}
               style={{ marginBottom: 12 }}
             >
               <Select

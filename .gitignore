@@ -82,3 +82,5 @@ openspec
 /AGENTS.md
 CLAUDE.md
 *.tmp
+src/copaw/console/assets/
+output.wav

@@ -116,6 +116,15 @@ PROVIDER_MLX = ProviderDefinition(
     is_local=True,
 )
 
+PROVIDER_TTS = ProviderDefinition(
+    id="tts",
+    name="TTS (Local)",
+    default_base_url="",
+    api_key_prefix="",
+    models=[],
+    is_local=True,
+)
+
 PROVIDER_OPENAI = ProviderDefinition(
     id="openai",
     name="OpenAI",
@@ -163,6 +172,7 @@ _BUILTIN_IDS: frozenset[str] = frozenset(
         "ollama",
         "llamacpp",
         "mlx",
+        "tts",
     ],
 )
 
@@ -176,6 +186,7 @@ PROVIDERS: dict[str, ProviderDefinition] = {
     PROVIDER_OLLAMA.id: PROVIDER_OLLAMA,
     PROVIDER_LLAMACPP.id: PROVIDER_LLAMACPP,
     PROVIDER_MLX.id: PROVIDER_MLX,
+    PROVIDER_TTS.id: PROVIDER_TTS,
 }
 
 _VALID_ID_RE = re.compile(r"^[a-z][a-z0-9_-]{0,63}$")
@@ -290,6 +301,7 @@ def sync_local_models() -> None:
 
         llamacpp_models: list[ModelInfo] = []
         mlx_models: list[ModelInfo] = []
+        tts_models: list[ModelInfo] = []
 
         for model in list_local_models():
             info = ModelInfo(id=model.id, name=model.display_name)
@@ -297,9 +309,12 @@ def sync_local_models() -> None:
                 llamacpp_models.append(info)
             elif model.backend == BackendType.MLX:
                 mlx_models.append(info)
+            elif model.backend == BackendType.TTS:
+                tts_models.append(info)
 
         PROVIDER_LLAMACPP.models = llamacpp_models
         PROVIDER_MLX.models = mlx_models
+        PROVIDER_TTS.models = tts_models
     except ImportError:
         # local_models dependencies not installed; leave model lists empty
         pass

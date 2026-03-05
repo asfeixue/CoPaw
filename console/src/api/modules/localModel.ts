@@ -3,6 +3,9 @@ import type {
   LocalModelResponse,
   DownloadModelRequest,
   DownloadTaskResponse,
+  TTSRequest,
+  TTSResponse,
+  TTSModelInfo,
 } from "../types";
 
 export const localModelApi = {
@@ -35,4 +38,19 @@ export const localModelApi = {
       `/local-models/${encodeURIComponent(modelId)}`,
       { method: "DELETE" },
     ),
+
+  /* ---- TTS ---- */
+
+  synthesizeTTS: (body: TTSRequest) =>
+    request<TTSResponse>("/tts/synthesize", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  listTTSModels: () => request<TTSModelInfo[]>("/tts/models"),
+
+  clearTTSCache: () =>
+    request<{ status: string; cleared_files: number }>("/tts/cache", {
+      method: "DELETE",
+    }),
 };

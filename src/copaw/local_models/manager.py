@@ -192,6 +192,7 @@ class LocalModelManager:
     ) -> LocalModelInfo:
         try:
             from modelscope.hub.file_download import model_file_download
+            from modelscope.hub.snapshot_download import snapshot_download
         except ImportError as e:
             raise ImportError(
                 "modelscope is required for ModelScope downloads. "
@@ -199,6 +200,30 @@ class LocalModelManager:
             ) from e
 
         _ensure_models_dir()
+
+        local_dir = MODELS_DIR / _sanitize_repo_id(repo_id)
+        local_dir.mkdir(parents=True, exist_ok=True)
+
+        # TTS and MLX models are directory-based, download entire repo
+        if backend in (BackendType.TTS, BackendType.MLX):
+            logger.info(
+                "Downloading full repo %s from ModelScope (%s)...",
+                repo_id,
+                backend.value,
+            )
+            snapshot_dir = snapshot_download(
+                model_id=repo_id,
+                local_dir=str(local_dir),
+            )
+            if backend == BackendType.MLX:
+                LocalModelManager._validate_mlx_directory(Path(snapshot_dir))
+            return LocalModelManager._register_model(
+                repo_id,
+                filename or "(full repo)",
+                backend,
+                DownloadSource.MODELSCOPE,
+                snapshot_dir,
+            )
 
         if filename is None:
             try:
@@ -216,9 +241,6 @@ class LocalModelManager:
                     "Please specify the filename explicitly.",
                 ) from e
             filename = LocalModelManager._auto_select_file(files, backend)
-
-        local_dir = MODELS_DIR / _sanitize_repo_id(repo_id)
-        local_dir.mkdir(parents=True, exist_ok=True)
 
         logger.info(
             "Downloading %s/%s from ModelScope...",
@@ -273,6 +295,38 @@ class LocalModelManager:
             # Return the first safetensors file; the download function
             # will pull it and register the model.
             return st_files[0]
+        elif backend == BackendType.TTS:
+            # TTS models can be directory-based or file-based
+            # Check for common TTS model files
+            tts_extensions = (".pt", ".pth", ".onnx", ".bin", ".ckpt")
+            tts_files = [f for f in files if f.endswith(tts_extensions)]
+
+            # If no specific model files found, check for config.json
+            # which indicates a directory-based model
+            if not tts_files and any(
+                f.endswith("config.json") or f == "config.json"
+                for f in files
+            ):
+                # Return first config.json found to indicate directory-based
+                config_files = [f for f in files if f.endswith("config.json")]
+                return config_files[0] if config_files else "config.json"
+
+            if not tts_files:
+                raise ValueError(
+                    "No TTS model files found in this repository. "
+                    "Expected .pt, .pth, .onnx, .bin, .ckpt files or "
+                    "a directory with config.json. "
+                    "Please specify the filename explicitly.",
+                )
+
+            # Prefer smaller quantized models if available
+            preferred_patterns = ["Q4", "Q5", "int8", "fp16"]
+            for pattern in preferred_patterns:
+                matching = [f for f in tts_files if pattern in f]
+                if matching:
+                    return matching[0]
+
+            return tts_files[0]
         else:
             raise ValueError(f"Unknown backend: {backend}")
 

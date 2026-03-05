@@ -56,6 +56,8 @@ dev = [
 ]
 local = [
     "huggingface_hub>=0.20.0",
+    "modelscope>=1.10.0",
+    "cosyvoice>=0.2.0",
 ]
 llamacpp = [
     "copaw[local]",

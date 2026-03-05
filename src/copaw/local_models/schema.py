@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 class BackendType(str, Enum):
     LLAMACPP = "llamacpp"
     MLX = "mlx"
+    TTS = "tts"
 
 
 class DownloadSource(str, Enum):

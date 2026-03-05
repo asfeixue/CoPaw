@@ -131,3 +131,26 @@ export interface DiscoverModelsResponse {
   models: ModelInfo[];
   added_count: number;
 }
+
+/* ---- TTS ---- */
+
+export interface TTSRequest {
+  text: string;
+  model_id: string;
+  speed?: number;
+  pitch?: number;
+  engine_type?: string;
+}
+
+export interface TTSResponse {
+  audio_url: string;
+  duration: number;
+  format: string;
+}
+
+export interface TTSModelInfo {
+  id: string;
+  name: string;
+  engine_type: string;
+  language: string;
+}
