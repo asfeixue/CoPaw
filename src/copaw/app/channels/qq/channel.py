@@ -253,12 +253,14 @@ class QQChannel(BaseChannel):
         on_reply_sent: OnReplySent = None,
         show_tool_details: bool = True,
         filter_tool_messages: bool = False,
+        filter_thinking: bool = False,
     ):
         super().__init__(
             process,
             on_reply_sent=on_reply_sent,
             show_tool_details=show_tool_details,
             filter_tool_messages=filter_tool_messages,
+            filter_thinking=filter_thinking,
         )
         self.enabled = enabled
         self.app_id = app_id
@@ -369,6 +371,7 @@ class QQChannel(BaseChannel):
         on_reply_sent: OnReplySent = None,
         show_tool_details: bool = True,
         filter_tool_messages: bool = False,
+        filter_thinking: bool = False,
     ) -> "QQChannel":
         return cls(
             process=process,
@@ -379,6 +382,7 @@ class QQChannel(BaseChannel):
             on_reply_sent=on_reply_sent,
             show_tool_details=show_tool_details,
             filter_tool_messages=filter_tool_messages,
+            filter_thinking=filter_thinking,
         )
 
     async def send(
@@ -520,13 +524,9 @@ class QQChannel(BaseChannel):
                 elif obj == "response":
                     last_response = event
 
-            if last_response and getattr(last_response, "error", None):
-                err = getattr(
-                    last_response.error,
-                    "message",
-                    str(last_response.error),
-                )
-                err_text = self.bot_prefix + f"Error: {err}"
+            err_msg = self._get_response_error_message(last_response)
+            if err_msg:
+                err_text = self.bot_prefix + f"Error: {err_msg}"
                 await self.send_content_parts(
                     to_handle,
                     [{"type": "text", "text": err_text}],
@@ -557,19 +557,14 @@ class QQChannel(BaseChannel):
                     to_handle,
                     request.session_id or f"{self.channel}:{to_handle}",
                 )
-        except Exception:
+        except Exception as e:
             logger.exception("qq process/reply failed")
+            err_msg = str(e).strip() or "An error occurred while processing."
             try:
                 fallback_handle = getattr(request, "user_id", "")
                 await self.send_content_parts(
                     fallback_handle,
-                    [
-                        {
-                            "type": "text",
-                            "text": "An error occurred while processing "
-                            "your request.",
-                        },
-                    ],
+                    [{"type": "text", "text": f"Error: {err_msg}"}],
                     getattr(request, "channel_meta", None) or {},
                 )
             except Exception:

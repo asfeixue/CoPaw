@@ -99,12 +99,14 @@ class FeishuChannel(BaseChannel):
         on_reply_sent: OnReplySent = None,
         show_tool_details: bool = True,
         filter_tool_messages: bool = False,
+        filter_thinking: bool = False,
     ):
         super().__init__(
             process,
             on_reply_sent=on_reply_sent,
             show_tool_details=show_tool_details,
             filter_tool_messages=filter_tool_messages,
+            filter_thinking=filter_thinking,
         )
         self.enabled = enabled
         self.app_id = app_id
@@ -162,6 +164,7 @@ class FeishuChannel(BaseChannel):
         on_reply_sent: OnReplySent = None,
         show_tool_details: bool = True,
         filter_tool_messages: bool = False,
+        filter_thinking: bool = False,
     ) -> "FeishuChannel":
         return cls(
             process=process,
@@ -175,6 +178,7 @@ class FeishuChannel(BaseChannel):
             on_reply_sent=on_reply_sent,
             show_tool_details=show_tool_details,
             filter_tool_messages=filter_tool_messages,
+            filter_thinking=filter_thinking,
         )
 
     def resolve_session_id(
@@ -1410,11 +1414,19 @@ class FeishuChannel(BaseChannel):
         text_parts: List[str] = []
         media_parts: List[OutgoingContentPart] = []
         for p in parts:
-            t = getattr(p, "type", None)
-            if t == ContentType.TEXT and getattr(p, "text", None):
-                text_parts.append(p.text or "")
-            elif t == ContentType.REFUSAL and getattr(p, "refusal", None):
-                text_parts.append(p.refusal or "")
+            t = getattr(p, "type", None) or (
+                p.get("type") if isinstance(p, dict) else None
+            )
+            text_val = getattr(p, "text", None) or (
+                p.get("text") if isinstance(p, dict) else None
+            )
+            refusal_val = getattr(p, "refusal", None) or (
+                p.get("refusal") if isinstance(p, dict) else None
+            )
+            if t == ContentType.TEXT and text_val:
+                text_parts.append(text_val or "")
+            elif t == ContentType.REFUSAL and refusal_val:
+                text_parts.append(refusal_val or "")
             elif t in (
                 ContentType.IMAGE,
                 ContentType.FILE,
