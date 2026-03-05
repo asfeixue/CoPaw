@@ -99,12 +99,11 @@ class SambertEngine(TTSEngine):
             self.load()
 
         try:
-            import numpy as np
             import soundfile as sf
         except ImportError as e:
             raise ImportError(
-                "numpy and soundfile are required for audio processing. "
-                "Install with: pip install numpy soundfile"
+                "soundfile is required for audio processing. "
+                "Install with: pip install soundfile"
             ) from e
 
         result = self.model(text)
@@ -123,7 +122,6 @@ class SambertEngine(TTSEngine):
     def _adjust_speed(self, audio_data: Any, speed: float) -> Any:
         """Adjust audio speed using resampling."""
         try:
-            import numpy as np
             import librosa
         except ImportError:
             logger.warning("librosa not installed, skipping speed adjustment")
@@ -174,13 +172,11 @@ class CosyVoiceEngine(TTSEngine):
             self.load()
 
         try:
-            import numpy as np
             import soundfile as sf
-            import torch
         except ImportError as e:
             raise ImportError(
-                "numpy, soundfile, and torch are required for CosyVoice. "
-                "Install with: pip install numpy soundfile torch"
+                "soundfile is required for CosyVoice. "
+                "Install with: pip install soundfile"
             ) from e
 
         # Generate speech
@@ -239,11 +235,10 @@ class MeloTTSEngine(TTSEngine):
             self.load()
 
         try:
-            import numpy as np
             import soundfile as sf
         except ImportError as e:
             raise ImportError(
-                "numpy and soundfile are required for audio processing."
+                "soundfile is required for audio processing."
             ) from e
 
         # Create temporary file for output
@@ -305,7 +300,7 @@ class TTSEngineFactory:
             TTSEngine instance.
         """
         if engine_type is None:
-            engine_type = cls._detect_engine_type(model_path)
+            engine_type = cls.detect_engine_type(model_path)
 
         engine_class = cls._engines.get(engine_type.lower())
         if engine_class is None:
@@ -314,7 +309,7 @@ class TTSEngineFactory:
         return engine_class(model_path, **kwargs)
 
     @classmethod
-    def _detect_engine_type(cls, model_path: str) -> str:
+    def detect_engine_type(cls, model_path: str) -> str:
         """Auto-detect engine type from model path/name."""
         path_lower = model_path.lower()
 

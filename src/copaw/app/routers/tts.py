@@ -159,7 +159,7 @@ async def list_tts_models() -> list[TTSModelInfo]:
     models = []
     for model in list_local_models(backend=BackendType.TTS):
         # Auto-detect engine type from model path
-        engine_type = TTSEngineFactory._detect_engine_type(model.local_path)
+        engine_type = TTSEngineFactory.detect_engine_type(model.local_path)
 
         # Determine language from model name/path
         language = "zh"
