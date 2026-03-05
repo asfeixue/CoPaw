@@ -27,7 +27,8 @@ import { useTranslation } from "react-i18next";
 import styles from "../../index.module.less";
 
 const POLL_INTERVAL_MS = 3000;
-const TTS_TEST_TEXT = "你好，这是语音合成测试。Hello, this is a text to speech test.";
+const TTS_TEST_TEXT =
+  "你好，这是语音合成测试。Hello, this is a text to speech test.";
 
 interface LocalModelManageModalProps {
   provider: ProviderInfo;
@@ -448,7 +449,9 @@ export function LocalModelManageModal({
             <Form.Item
               name="source"
               label={t("models.localSource")}
-              initialValue={provider.id === "tts" ? "modelscope" : "huggingface"}
+              initialValue={
+                provider.id === "tts" ? "modelscope" : "huggingface"
+              }
               style={{ marginBottom: 12 }}
             >
               <Select
